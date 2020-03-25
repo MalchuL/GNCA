@@ -19,17 +19,16 @@ def main(target_image, train_config):
     seed[3:, h // 2, w // 2] = 1.0
     pad_target = pad_target[None, ...]
 
-    pad_target = torch.from_numpy(pad_target)
-    target_image = torch.from_numpy(target_image)
+    pad_target = torch.from_numpy(pad_target).cuda()
 
 
     def loss_f(x, target):
-        x =  to_rgba(x)
+        x = to_rgba(x)
         target = target.expand_as(x)
-        loss = F.mse_loss(to_rgba(x), target, reduction='none')
+        loss = F.mse_loss(x, target, reduction='none')
         return loss.mean(-1).mean(-1).mean(-1)
 
-    ca = CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE)
+    ca = CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE).cuda()
 
     loss_log = []
 
@@ -43,23 +42,27 @@ def main(target_image, train_config):
     pool = SamplePool(x=np.repeat(seed[None, ...], train_config.POOL_SIZE, 0))
 
     def train_step(x):
-        x = torch.from_numpy(x)
-        iter_n = int(random.uniform(46, 72))
+        x = torch.from_numpy(x).cuda()
+        iter_n = int(random.uniform(64, 96))
         for i in range(iter_n):
             x = ca(x)
         loss = torch.mean(loss_f(x, pad_target))
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(ca.parameters(), 1)
+
         optimizer.step()
+        lr_sched.step()
         return x, loss
 
     for i in range(8000 + 1):
         if train_config.USE_PATTERN_POOL:
             batch = pool.sample(train_config.BATCH_SIZE)
 
-            x0 = torch.from_numpy(batch.x)
-            loss_rank = loss_f(x0, pad_target).numpy().argsort()[::-1]
+            x0 = torch.from_numpy(batch.x).cuda()
+            loss_rank = loss_f(x0, pad_target).cpu().numpy().argsort()[::-1]
             print(loss_rank)
-            x0 = x0.numpy()
+            x0 = x0.cpu().numpy()
             x0 = x0[loss_rank]
             x0[:1] = seed
             if train_config.DAMAGE_N:
@@ -83,10 +86,6 @@ def main(target_image, train_config):
 
         if step_i % 10 == 0:
             generate_pool_figures(pool, step_i)
-        if False and step_i % 100 == 0:
-            clear_output()
-            visualize_batch(x0, x, step_i)
-            plot_loss(loss_log)
-            export_model(ca, 'train_log/%04d' % step_i)
 
-        print('\r step: %d, log10(loss): %.3f' % (len(loss_log), np.log10(loss)), end='')
+
+        print('\r step: %d, %f log10(loss): %.3f' % (len(loss_log), loss, np.log10(loss)), end='')

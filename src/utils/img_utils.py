@@ -7,6 +7,7 @@ import numpy as np
 
 def imread(path):
     img = plt.imread(path)
+    img[:,:,:3] *= img[:,:,3:4]
     return img.transpose(2,0,1)
 
 

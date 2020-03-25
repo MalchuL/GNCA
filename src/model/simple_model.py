@@ -16,10 +16,11 @@ class CAModel(nn.Module):
         self.hidden_size = hidden_size
 
         self.dmodel = nn.Sequential(
-            nn.Conv2d(self.channel_n, self.hidden_size, 1),
-            nn.ReLU()
+            nn.Conv2d(self.channel_n * 3, self.hidden_size, 1),
+            nn.ReLU(),
+            nn.Conv2d(self.hidden_size, self.channel_n, 1)
         )
-        self.out = nn.Conv2d(self.hidden_size, self.channel_n, 1)
+
 
         self._init_weights()
 
@@ -40,35 +41,39 @@ class CAModel(nn.Module):
 
 
     def _init_weights(self):
-        nn.init.zeros_(self.out.weight)
-        nn.init.zeros_(self.out.bias)
+        nn.init.zeros_(self.dmodel[-1].weight)
+        nn.init.zeros_(self.dmodel[-1].bias)
 
     def perceive(self, x, angle=0.0):
         kernel = self._get_kernel(angle)
         kernel = kernel.to(x.device)  # Move to same device
 
-        channels_count = x.size()[1] # NHWC correspondence
+        kernel = kernel.view(-1,1,3,3)
 
         x = x.repeat(1,3,1,1)
+        channels_count = x.size()[1]  # NHWC correspondence
+
         y = F.conv2d(x, kernel, padding=1, groups=channels_count)
         return y
 
     def forward(self, x):
-        x = self.perceive(x)
-        dx = self.dmodel(x)
-        dx = self.out(dx)
-        return dx
+        return self.call(x)
 
     def call(self, x, fire_rate=None, angle=0.0, step_size=1.0):
         pre_life_mask = get_living_mask(x)
 
         y = self.perceive(x, angle)
         dx = self.dmodel(y) * step_size
+
         if fire_rate is None:
             fire_rate = self.fire_rate
-        update_mask = tf.random.uniform(tf.shape(x[:, :, :, :1])) <= fire_rate
-        x += dx * tf.cast(update_mask, tf.float32)
+        update_mask = torch.rand(x[:, :1, :, :].shape, device=x.device) <= fire_rate
+        update_mask.float().to(x.device)
+        update_mask.requires_grad = False
+
+        x = x + dx * update_mask
 
         post_life_mask = get_living_mask(x)
-        life_mask = pre_life_mask & post_life_mask
-        return x * tf.cast(life_mask, tf.float32)
+        life_mask = (pre_life_mask & post_life_mask).float().to(x.device)
+        life_mask.requires_grad = False
+        return x * life_mask

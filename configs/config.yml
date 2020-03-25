@@ -16,5 +16,5 @@ model:
   EXPERIMENT_N: 1
 
   USE_PATTERN_POOL: 1  #[0, 1, 1][EXPERIMENT_N]
-  DAMAGE_N: 3 #[0, 0, 3][EXPERIMENT_N]  # Number of patterns to damage in a batch
+  DAMAGE_N: 0 #[0, 0, 3][EXPERIMENT_N]  # Number of patterns to damage in a batch
 
