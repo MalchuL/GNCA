@@ -21,18 +21,24 @@ class CAModel(nn.Module):
             nn.Conv2d(self.hidden_size, self.channel_n, 1)
         )
 
-
         self._init_weights()
-
 
     def _get_kernel(self, angle=0.0):
         identify = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.float32)
         dx = np.outer([1, 2, 1], [-1, 0, 1]) / 8.0  # Sobel filter
         dy = dx.T.copy()
         c, s = np.cos(angle), np.sin(angle)
-        kernel = np.stack([identify, c * dx - s * dy, s * dx + c * dy], 0)[:,None, :, :].astype(np.float32)
-        kernel = np.repeat(kernel, self.channel_n, 1)
-        kernel = kernel.transpose([1, 0, 2, 3])
+
+        identify = np.repeat(identify[None, :, :], self.channel_n, 0)
+
+        x = c * dx - s * dy
+        x = np.repeat(x[None, :, :], self.channel_n, 0)
+
+        y = s * dx + c * dy
+        y = np.repeat(y[None, :, :], self.channel_n, 0)
+
+        kernel = np.concatenate([identify, x, y], 0)[:, None, :, :].astype(np.float32)
+
         kernel = torch.from_numpy(kernel)
         kernel.requires_grad = False
         return kernel
@@ -48,11 +54,8 @@ class CAModel(nn.Module):
         kernel = self._get_kernel(angle)
         kernel = kernel.to(x.device)  # Move to same device
 
-        kernel = kernel.view(-1,1,3,3)
-
         x = x.repeat(1,3,1,1)
         channels_count = x.size()[1]  # NHWC correspondence
-
         y = F.conv2d(x, kernel, padding=1, groups=channels_count)
         return y
 
