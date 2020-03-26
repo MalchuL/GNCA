@@ -6,8 +6,39 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from src.model.simple_model import CAModel
-from src.train.pool import SamplePool, make_circle_masks, generate_pool_figures
+from src.train.pool import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch
 from src.utils import to_rgba
+
+
+def clip_grad_norm_(parameters, max_norm, norm_type=2):
+    r"""Clips gradient norm of an iterable of parameters.
+
+    The norm is computed over all gradients together, as if they were
+    concatenated into a single vector. Gradients are modified in-place.
+
+    Arguments:
+        parameters (Iterable[Tensor] or Tensor): an iterable of Tensors or a
+            single Tensor that will have gradients normalized
+        max_norm (float or int): max norm of the gradients
+        norm_type (float or int): type of the used p-norm. Can be ``'inf'`` for
+            infinity norm.
+
+    Returns:
+        Total norm of the parameters (viewed as a single vector).
+    """
+    if isinstance(parameters, torch.Tensor):
+        parameters = [parameters]
+    parameters = list(filter(lambda p: p.grad is not None, parameters))
+    max_norm = float(max_norm)
+    norm_type = float(norm_type)
+
+    for p in parameters:
+        param_norm = p.grad.data.norm(norm_type)
+        clip_coef = max_norm / (param_norm + 1e-8)
+        p.grad.data.mul_(clip_coef)
+
+
+
 
 
 def main(target_image, train_config):
@@ -42,6 +73,8 @@ def main(target_image, train_config):
     pool = SamplePool(x=np.repeat(seed[None, ...], train_config.POOL_SIZE, 0))
 
     def train_step(x):
+        optimizer.zero_grad()
+
         x = torch.from_numpy(x).cuda()
         iter_n = int(random.uniform(64, 96))
         for i in range(iter_n):
@@ -49,7 +82,7 @@ def main(target_image, train_config):
         loss = torch.mean(loss_f(x, pad_target))
         loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(ca.parameters(), 1)
+        clip_grad_norm_(ca.parameters(), 1)
 
         optimizer.step()
         lr_sched.step()
@@ -71,21 +104,27 @@ def main(target_image, train_config):
                 print(x0.shape, damage.shape)
                 x0[-train_config.DAMAGE_N:] *= damage
         else:
-            x0 = np.repeat(seed[None, ...], train_config.BATCH_SIZE, 0)
+            batch = pool.sample(train_config.BATCH_SIZE)
+            x0 = np.repeat(seed[None, ...].copy(), train_config.BATCH_SIZE, 0)
+
 
         x, loss = train_step(x0)
 
-        if train_config.USE_PATTERN_POOL:
-            batch.x[:] = x.detach().cpu().numpy()
-            batch.commit()
+
+        batch.x[:] = x.detach().cpu().numpy()
+        batch.commit()
 
         step_i = len(loss_log)
         loss = loss.item()
         loss_log.append(loss)
 
-
+        #import matplotlib.pyplot as plt
         if step_i % 10 == 0:
             generate_pool_figures(pool, step_i)
+
+        if step_i % 100 == 0:
+            visualize_batch(x0, x.cpu().detach().numpy(), step_i)
+
 
 
         print('\r step: %d, %f log10(loss): %.3f' % (len(loss_log), loss, np.log10(loss)), end='')

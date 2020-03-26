@@ -1,6 +1,7 @@
 import numpy as np
 
 from src.utils import tile2d, to_rgb, imwrite, imshow
+from src.utils.img_utils import _to_NHWC
 
 
 class SamplePool:
@@ -23,7 +24,7 @@ class SamplePool:
 
     def commit(self):
         for k in self._slot_names:
-            getattr(self._parent, k)[self._parent_idx] = getattr(self, k)
+            getattr(self._parent, k)[self._parent_idx] = getattr(self, k).copy()
 
 
 def make_circle_masks(n, h, w):
@@ -52,12 +53,11 @@ def generate_pool_figures(pool, step_i):
 
 
 def visualize_batch(x0, x, step_i):
-    vis0 = np.hstack(to_rgb(x0).numpy())
-    vis1 = np.hstack(to_rgb(x).numpy())
+    vis0 = np.hstack(_to_NHWC(to_rgb(x0)))
+    vis1 = np.hstack(_to_NHWC(to_rgb(x)))
     vis = np.vstack([vis0, vis1])
     imwrite('train_log/batches_%04d.jpg' % step_i, vis)
-    print('batch (before/after):')
-    imshow(vis)
+
 
 
 def plot_loss(loss_log):

@@ -10,6 +10,13 @@ def imread(path):
     img[:,:,:3] *= img[:,:,3:4]
     return img.transpose(2,0,1)
 
+def load_image(path, max_size):
+  img = PIL.Image.open(path)
+  img.thumbnail((max_size, max_size), PIL.Image.ANTIALIAS)
+  img = np.float32(img)/255.0
+  # premultiply RGB by Alpha
+  img[..., :3] *= img[..., 3:]
+  return img.transpose(2,0,1)
 
 def np2pil(a):
     if a.dtype in [np.float32, np.float64]:
