@@ -1,10 +1,10 @@
 data:
-  IMG_PATH: data/worm.png
+  IMG_PATH: data/sonic.png
 
 model:
   CHANNEL_N: 16        # Number of CA state channels
-  TARGET_PADDING: 16   # Number of pixels used to pad the target image border
-  TARGET_SIZE: 40
+  TARGET_PADDING: 0   # Number of pixels used to pad the target image border
+  TARGET_SIZE: 85
   BATCH_SIZE: 8
   POOL_SIZE: 1024
   CELL_FIRE_RATE: 0.5

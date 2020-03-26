@@ -4,10 +4,13 @@ import PIL.Image, PIL.ImageDraw
 import base64
 import matplotlib.pyplot as plt
 import numpy as np
+from skimage.transform import resize
 
-def imread(path):
+def imread(path, max_size):
     img = plt.imread(path)
     img[:,:,:3] *= img[:,:,3:4]
+
+    img = resize(img, (max_size,max_size), anti_aliasing=False)
     return img.transpose(2,0,1)
 
 def load_image(path, max_size):

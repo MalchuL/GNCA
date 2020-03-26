@@ -68,7 +68,7 @@ def main(target_image, train_config):
     optimizer = optim.Adam(ca.parameters(), lr)
 
     lr_sched = sched.MultiStepLR(optimizer,
-                                 [2000], gamma=0.1)
+                                 [5000, 8000], gamma=0.1)
 
     pool = SamplePool(x=np.repeat(seed[None, ...], train_config.POOL_SIZE, 0))
 
@@ -88,20 +88,20 @@ def main(target_image, train_config):
         lr_sched.step()
         return x, loss
 
-    for i in range(8000 + 1):
+    for i in range(10000 + 1):
         if train_config.USE_PATTERN_POOL:
             batch = pool.sample(train_config.BATCH_SIZE)
 
             x0 = torch.from_numpy(batch.x).cuda()
             loss_rank = loss_f(x0, pad_target).cpu().numpy().argsort()[::-1]
-            print(loss_rank)
             x0 = x0.cpu().numpy()
             x0 = x0[loss_rank]
-            x0[:1] = seed
+
+            seeded = train_config.BATCH_SIZE // 3
+
+            x0[:seeded] = np.repeat(seed[None, ...], seeded, 0)
             if train_config.DAMAGE_N:
-                print(type(train_config.DAMAGE_N))
                 damage = 1.0 - make_circle_masks(train_config.DAMAGE_N, h, w)[:,None,...]
-                print(x0.shape, damage.shape)
                 x0[-train_config.DAMAGE_N:] *= damage
         else:
             batch = pool.sample(train_config.BATCH_SIZE)
