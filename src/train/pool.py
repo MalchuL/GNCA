@@ -37,10 +37,6 @@ def make_circle_masks(n, h, w):
     return mask
 
 
-def export_model(ca, base_fn):
-    raise NotImplemented
-
-
 def generate_pool_figures(pool, step_i, output_folder):
     tiled_pool = tile2d(to_rgb(pool.x[:49]))
     fade = np.linspace(1.0, 0.0, 72)

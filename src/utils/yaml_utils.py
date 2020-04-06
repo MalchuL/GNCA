@@ -7,6 +7,10 @@ class Struct:
             if isinstance(v, dict):
                 setattr(self, k, Struct(**v))
             else:
+                try:
+                    v = eval(v)
+                except:
+                    pass
                 setattr(self, k, v)
 
 

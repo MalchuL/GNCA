@@ -15,8 +15,13 @@ from pathlib import Path
 
 
 def main(target_image, train_config, log_config):
-    Path(log_config.TRAIN_OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
-    Path(log_config.INFER_OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
+    root_folder = Path(log_config.OUTPUT_FOLDER)
+
+    train_output_folder = root_folder / 'train_log'
+    train_output_folder.mkdir(parents=True, exist_ok=True)
+
+    infer_output_folder = root_folder / 'infer_log'
+    infer_output_folder.mkdir(parents=True, exist_ok=True)
 
     p = train_config.TARGET_PADDING
     pad_target = np.pad(target_image, [(0, 0), (p, p), (p, p)])
@@ -42,10 +47,10 @@ def main(target_image, train_config, log_config):
     optimizer = optim.Adam(ca.parameters(), lr)
 
     lr_sched = sched.MultiStepLR(optimizer,
-                                 [5000 * 3, 8000 * 3], gamma=0.1)
+                                 train_config.STEPS, gamma=0.1)
 
     try:
-        ckpt = torch.load('model_last.ckpt')
+        ckpt = torch.load(str(root_folder / 'model_last.ckpt'))
         ca.load_state_dict(ckpt['model'])
         optimizer.load_state_dict(ckpt['optimizer'])
         lr_sched.load_state_dict(ckpt['scheduler'])
@@ -106,19 +111,19 @@ def main(target_image, train_config, log_config):
 
         # import matplotlib.pyplot as plt
         if step_i % 10 == 0:
-            generate_pool_figures(pool, step_i)
+            generate_pool_figures(pool, step_i, train_output_folder)
 
         if step_i % 100 == 0:
-            visualize_batch(x0, x.cpu().detach().numpy(), step_i, log_config.TRAIN_OUTPUT_FOLDER)
+            visualize_batch(x0, x.cpu().detach().numpy(), step_i, train_output_folder)
 
             # with open('pool.pkl', 'wb') as f:
             #    pickle.dump(pool, f)
 
             ckpt = torch.save(
                 dict(model=ca.state_dict(), optimizer=optimizer.state_dict(), scheduler=lr_sched.state_dict(), epoch=i),
-                'model_last.ckpt')
+                str(root_folder / 'model_last.ckpt'))
 
-        print('\r step: %d, %f log10(loss): %.3f' % (i, loss, np.log10(loss)), end='')
+        print('\r step: %d, log10(loss): %.3f, loss: %f' % (i, np.log10(loss), loss), end='')
 
     with torch.no_grad():
         x = seed[None, ...]
@@ -126,6 +131,6 @@ def main(target_image, train_config, log_config):
         for i in range(3000 + 1):
             from src.utils.img_utils import _to_NHWC
             temp = _to_NHWC(to_rgb(x.detach().cpu().numpy()))[0]
-            imwrite(os.path.join(log_config.INFER_OUTPUT_FOLDER, 'out_%04d.jpg' % i), temp)
+            imwrite(os.path.join(infer_output_folder, 'out_%04d.jpg' % i), temp)
 
             x = ca(x)

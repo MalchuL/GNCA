@@ -2,8 +2,7 @@ data:
   IMG_PATH: data/sonic.png
 
 log:
-  TRAIN_OUTPUT_FOLDER: train_log
-  INFER_OUTPUT_FOLDER: infer_log
+  OUTPUT_FOLDER: sonic
 
 model:
   CHANNEL_N: 16       # Number of CA state channels
@@ -14,6 +13,7 @@ model:
   CELL_FIRE_RATE: 0.5
   ITER_NUMBER: (64, 86) # Min, Max
   EPOCHES: 30000
+  STEPS: [15000, 24000]
 
   TARGET_EMOJI: "🦎" #@param {type:"string"}
 
