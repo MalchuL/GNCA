@@ -1,3 +1,5 @@
+import pickle
+import os
 import numpy as np
 import random
 import torch
@@ -7,43 +9,16 @@ import torch.nn.functional as F
 
 from src.model.simple_model import CAModel
 from src.train.pool import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch
-from src.utils import to_rgba
+from src.utils import to_rgba, imwrite, to_rgb
+from src.utils.ca_utils import clip_grad_norm_
+from pathlib import Path
 
 
-def clip_grad_norm_(parameters, max_norm, norm_type=2):
-    r"""Clips gradient norm of an iterable of parameters.
+def main(target_image, train_config, log_config):
+    Path(log_config.TRAIN_OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
+    Path(log_config.INFER_OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
 
-    The norm is computed over all gradients together, as if they were
-    concatenated into a single vector. Gradients are modified in-place.
-
-    Arguments:
-        parameters (Iterable[Tensor] or Tensor): an iterable of Tensors or a
-            single Tensor that will have gradients normalized
-        max_norm (float or int): max norm of the gradients
-        norm_type (float or int): type of the used p-norm. Can be ``'inf'`` for
-            infinity norm.
-
-    Returns:
-        Total norm of the parameters (viewed as a single vector).
-    """
-    if isinstance(parameters, torch.Tensor):
-        parameters = [parameters]
-    parameters = list(filter(lambda p: p.grad is not None, parameters))
-    max_norm = float(max_norm)
-    norm_type = float(norm_type)
-
-    for p in parameters:
-        param_norm = p.grad.data.norm(norm_type)
-        clip_coef = max_norm / (param_norm + 1e-8)
-        p.grad.data.mul_(clip_coef)
-
-
-
-
-
-def main(target_image, train_config):
     p = train_config.TARGET_PADDING
-    print(type(p), target_image.shape)
     pad_target = np.pad(target_image, [(0, 0), (p, p), (p, p)])
     h, w = pad_target.shape[1:]
     seed = np.zeros([train_config.CHANNEL_N, h, w], np.float32)
@@ -52,14 +27,13 @@ def main(target_image, train_config):
 
     pad_target = torch.from_numpy(pad_target).cuda()
 
-
     def loss_f(x, target):
         x = to_rgba(x)
         target = target.expand_as(x)
         loss = F.mse_loss(x, target, reduction='none')
         return loss.mean(-1).mean(-1).mean(-1)
 
-    ca = CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE).cuda()
+    ca = CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE, 128).cuda()
 
     loss_log = []
 
@@ -68,15 +42,29 @@ def main(target_image, train_config):
     optimizer = optim.Adam(ca.parameters(), lr)
 
     lr_sched = sched.MultiStepLR(optimizer,
-                                 [5000, 8000], gamma=0.1)
+                                 [5000 * 3, 8000 * 3], gamma=0.1)
 
-    pool = SamplePool(x=np.repeat(seed[None, ...], train_config.POOL_SIZE, 0))
+    try:
+        ckpt = torch.load('model_last.ckpt')
+        ca.load_state_dict(ckpt['model'])
+        optimizer.load_state_dict(ckpt['optimizer'])
+        lr_sched.load_state_dict(ckpt['scheduler'])
+        epoch = ckpt['epoch']
+    except Exception as e:
+        print('load error', e)
+        epoch = 0
+
+    try:
+        with open('pool.pkl', 'rb') as f:
+            pool = pickle.load(f)
+    except:
+        pool = SamplePool(x=np.repeat(seed[None, ...], train_config.POOL_SIZE, 0))
 
     def train_step(x):
         optimizer.zero_grad()
 
         x = torch.from_numpy(x).cuda()
-        iter_n = int(random.uniform(64, 96))
+        iter_n = int(random.uniform(*train_config.ITER_NUMBER))
         for i in range(iter_n):
             x = ca(x)
         loss = torch.mean(loss_f(x, pad_target))
@@ -88,7 +76,7 @@ def main(target_image, train_config):
         lr_sched.step()
         return x, loss
 
-    for i in range(10000 + 1):
+    for i in range(epoch, train_config.EPOCHES):
         if train_config.USE_PATTERN_POOL:
             batch = pool.sample(train_config.BATCH_SIZE)
 
@@ -101,30 +89,43 @@ def main(target_image, train_config):
 
             x0[:seeded] = np.repeat(seed[None, ...], seeded, 0)
             if train_config.DAMAGE_N:
-                damage = 1.0 - make_circle_masks(train_config.DAMAGE_N, h, w)[:,None,...]
+                damage = 1.0 - make_circle_masks(train_config.DAMAGE_N, h, w)[:, None, ...]
                 x0[-train_config.DAMAGE_N:] *= damage
         else:
             batch = pool.sample(train_config.BATCH_SIZE)
             x0 = np.repeat(seed[None, ...].copy(), train_config.BATCH_SIZE, 0)
 
-
         x, loss = train_step(x0)
-
 
         batch.x[:] = x.detach().cpu().numpy()
         batch.commit()
 
-        step_i = len(loss_log)
+        step_i = i
         loss = loss.item()
         loss_log.append(loss)
 
-        #import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         if step_i % 10 == 0:
             generate_pool_figures(pool, step_i)
 
         if step_i % 100 == 0:
-            visualize_batch(x0, x.cpu().detach().numpy(), step_i)
+            visualize_batch(x0, x.cpu().detach().numpy(), step_i, log_config.TRAIN_OUTPUT_FOLDER)
 
+            # with open('pool.pkl', 'wb') as f:
+            #    pickle.dump(pool, f)
 
+            ckpt = torch.save(
+                dict(model=ca.state_dict(), optimizer=optimizer.state_dict(), scheduler=lr_sched.state_dict(), epoch=i),
+                'model_last.ckpt')
 
-        print('\r step: %d, %f log10(loss): %.3f' % (len(loss_log), loss, np.log10(loss)), end='')
+        print('\r step: %d, %f log10(loss): %.3f' % (i, loss, np.log10(loss)), end='')
+
+    with torch.no_grad():
+        x = seed[None, ...]
+        x = torch.from_numpy(x).cuda()
+        for i in range(3000 + 1):
+            from src.utils.img_utils import _to_NHWC
+            temp = _to_NHWC(to_rgb(x.detach().cpu().numpy()))[0]
+            imwrite(os.path.join(log_config.INFER_OUTPUT_FOLDER, 'out_%04d.jpg' % i), temp)
+
+            x = ca(x)

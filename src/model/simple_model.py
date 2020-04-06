@@ -17,9 +17,9 @@ class CAModel(nn.Module):
 
         self.dmodel = nn.Sequential(
             nn.Conv2d(self.channel_n * 3, self.hidden_size, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU6(inplace=True),
             nn.Conv2d(self.hidden_size, self.hidden_size, 1),
-            nn.ReLU(inplace=True),
+            nn.ReLU6(inplace=True),
             nn.Conv2d(self.hidden_size, self.channel_n, 1)
         )
 

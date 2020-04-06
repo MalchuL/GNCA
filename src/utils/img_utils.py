@@ -9,17 +9,10 @@ from skimage.transform import resize
 def imread(path, max_size):
     img = plt.imread(path)
     img[:,:,:3] *= img[:,:,3:4]
-
-    img = resize(img, (max_size,max_size), anti_aliasing=False)
+    # 0: Nearest-neighbor 1: Bi-linear (default) 2: Bi-quadratic 3: Bi-cubic 4: Bi-quartic 5: Bi-quintic
+    img = resize(img, (max_size,max_size), order=0, anti_aliasing=False)
     return img.transpose(2,0,1)
 
-def load_image(path, max_size):
-  img = PIL.Image.open(path)
-  img.thumbnail((max_size, max_size), PIL.Image.ANTIALIAS)
-  img = np.float32(img)/255.0
-  # premultiply RGB by Alpha
-  img[..., :3] *= img[..., 3:]
-  return img.transpose(2,0,1)
 
 def np2pil(a):
     if a.dtype in [np.float32, np.float64]:
@@ -51,9 +44,6 @@ def im2url(a, fmt='jpeg'):
     base64_byte_string = base64.b64encode(encoded).decode('ascii')
     return 'data:image/' + fmt.upper() + ';base64,' + base64_byte_string
 
-
-def imshow(a, fmt='jpeg'):
-    display(Image(data=imencode(a, fmt)))
 
 
 def _to_NHWC(a):
@@ -99,29 +89,3 @@ def to_rgb(x):
     rgb, a = x[:, :3, ...], to_alpha(x)
     return 1.0 - a + rgb
 
-
-class VideoWriter:
-    def __init__(self, filename, fps=30.0, **kw):
-        self.writer = None
-        self.params = dict(filename=filename, fps=fps, **kw)
-
-    def add(self, img):
-        img = np.asarray(img)
-        if self.writer is None:
-            h, w = img.shape[:2]
-            self.writer = FFMPEG_VideoWriter(size=(w, h), **self.params)
-        if img.dtype in [np.float32, np.float64]:
-            img = np.uint8(img.clip(0, 1) * 255)
-        if len(img.shape) == 2:
-            img = np.repeat(img[..., None], 3, -1)
-        self.writer.write_frame(img)
-
-    def close(self):
-        if self.writer:
-            self.writer.close()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *kw):
-        self.close()
