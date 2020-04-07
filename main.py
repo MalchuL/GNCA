@@ -1,7 +1,6 @@
 import numpy as np
 
-
-from src import *
+import src.utils as utils
 from src.training.train import train
 from src.utils import imread
 import matplotlib.pyplot as plt
@@ -9,6 +8,8 @@ import argparse
 
 parser = argparse.ArgumentParser('Growing Neural Cellar Automata for single image restoration')
 parser.add_argument('--config', default='configs/config.yml', help='path to config')
+parser.add_argument('--use-cuda', action='store_true', help='use cuda?')
+parser.add_argument('--skip-preview', action='store_true', help='use cuda?')
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -17,7 +18,8 @@ if __name__ == '__main__':
 
     img = imread(yaml.data.IMG_PATH, yaml.model.TARGET_SIZE)
 
-    plt.imshow(img.transpose(1, 2, 0))
-    plt.show()
+    if not args.skip_preview:
+        plt.imshow(img.transpose(1, 2, 0))
+        plt.show()
 
-    train(img.astype(np.float32), yaml.model, yaml.log)
+    train(img.astype(np.float32), yaml.model, yaml.log, yaml.infer, args.use_cuda)

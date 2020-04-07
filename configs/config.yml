@@ -5,9 +5,11 @@ log:
   OUTPUT_FOLDER: sonic
 
 infer:
-  INFER_STEPS: 500
+  INFER_ON_EACH: 500 # While training it will infer on each step
+  INFER_STEPS: 500 # Steps used for infer
 
 model:
+  LR: 2e-3
   CHANNEL_N: 16         # Number of CA state channels
   TARGET_PADDING: 0     # Number of pixels used to pad the target resized image border
   TARGET_SIZE: 64       # Resize image to this size
@@ -17,6 +19,7 @@ model:
   ITER_NUMBER: (64, 86) # Min, Max recursion steps range
   EPOCHES: 5000
   STEPS: [15000, 24000] # Drop LR to 0.1
+
 
 
   # This parameters are hepling for USE_PATTERN_POOL and DAMAGE_N

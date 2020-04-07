@@ -7,7 +7,7 @@ Example of infer:\
      ![Image of Sonic](examples/sonic.gif)
 
 ## Installation
-All experiments was running **Ubuntu OS** NVDIA 2080 TI GPU.
+All experiments was on running **Ubuntu OS**, **NVDIA 2080 TI GPU**.
 
 Requirements:
 
@@ -19,5 +19,6 @@ Requirements:
 Steps to reproduce:
 
     1. Run `pip install -r requirements.txt`.   
-    2. Run `python main.py`
+    2. Run `python main.py` to use CPU or  `python main.py --use-cuda` to use GPU
+    3. Wait while training will ends, in infer_log folder will be generated image  
     
