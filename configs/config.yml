@@ -11,13 +11,14 @@ infer:
 model:
   LR: 2e-3
   CHANNEL_N: 16         # Number of CA state channels
+  HIDDEN_SIZE: [128, 128]
   TARGET_PADDING: 0     # Number of pixels used to pad the target resized image border
-  TARGET_SIZE: 64       # Resize image to this size
+  TARGET_SIZE: 96       # Resize image to this size
   BATCH_SIZE: 8
   POOL_SIZE: 8096       # Size of dataset to save intermediate predictions
   CELL_FIRE_RATE: 0.5
   ITER_NUMBER: (64, 86) # Min, Max recursion steps range
-  EPOCHES: 5000
+  EPOCHES: 30000
   STEPS: [15000, 24000] # Drop LR to 0.1
 
 

@@ -5,23 +5,24 @@ import torch.nn.functional as F
 
 from ..utils.ca_utils import get_living_mask
 
+def ca_block(in_size, out_size):
+    return nn.Sequential(nn.Conv2d(in_size, out_size, 1), nn.ReLU6(inplace=True))
 
 class CAModel(nn.Module):
 
-    def __init__(self, channel_n, fire_rate, hidden_size=128):
+    def __init__(self, channel_n, fire_rate, hidden_sizes=(128,)):
         super().__init__()
         self.channel_n = channel_n
         self.fire_rate = fire_rate
 
-        self.hidden_size = hidden_size
 
-        self.dmodel = nn.Sequential(
-            nn.Conv2d(self.channel_n * 3, self.hidden_size, 1),
-            nn.ReLU6(inplace=True),
-            nn.Conv2d(self.hidden_size, self.hidden_size, 1),
-            nn.ReLU6(inplace=True),
-            nn.Conv2d(self.hidden_size, self.channel_n, 1)
-        )
+        layers = []
+        sizes = zip([channel_n * 3] + hidden_sizes[:-1], hidden_sizes)
+        for in_size, out_size in sizes:
+            layers.append(ca_block(in_size, out_size))
+
+
+        self.dmodel = nn.Sequential(*layers, nn.Conv2d(hidden_sizes[-1], channel_n, 1))
 
         self._init_weights()
 
