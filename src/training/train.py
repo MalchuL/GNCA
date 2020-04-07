@@ -7,14 +7,16 @@ import torch.optim.lr_scheduler as sched
 import torch.optim as optim
 import torch.nn.functional as F
 
-from src.model.simple_model import CAModel
-from src.train.pool import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch
-from src.utils import to_rgba, imwrite, to_rgb
-from src.utils.ca_utils import clip_grad_norm_
 from pathlib import Path
 
+from ..model.simple_model import CAModel
+from ..training.pool import SamplePool, make_circle_masks, generate_pool_figures, visualize_batch
+from ..utils import to_rgba, imwrite, to_rgb
+from ..utils.ca_utils import clip_grad_norm_
 
-def main(target_image, train_config, log_config):
+
+
+def train(target_image, train_config, log_config, infer_config):
     root_folder = Path(log_config.OUTPUT_FOLDER)
 
     train_output_folder = root_folder / 'train_log'
@@ -128,7 +130,7 @@ def main(target_image, train_config, log_config):
     with torch.no_grad():
         x = seed[None, ...]
         x = torch.from_numpy(x).cuda()
-        for i in range(3000 + 1):
+        for i in range(infer_config.INFER_STEPS + 1):
             from src.utils.img_utils import _to_NHWC
             temp = _to_NHWC(to_rgb(x.detach().cpu().numpy()))[0]
             imwrite(os.path.join(infer_output_folder, 'out_%04d.jpg' % i), temp)

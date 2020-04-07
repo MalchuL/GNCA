@@ -4,23 +4,27 @@ data:
 log:
   OUTPUT_FOLDER: sonic
 
+infer:
+  INFER_STEPS: 500
+
 model:
-  CHANNEL_N: 16       # Number of CA state channels
-  TARGET_PADDING: 0   # Number of pixels used to pad the target image border
-  TARGET_SIZE: 96
+  CHANNEL_N: 16         # Number of CA state channels
+  TARGET_PADDING: 0     # Number of pixels used to pad the target resized image border
+  TARGET_SIZE: 64       # Resize image to this size
   BATCH_SIZE: 8
-  POOL_SIZE: 8096
+  POOL_SIZE: 8096       # Size of dataset to save intermediate predictions
   CELL_FIRE_RATE: 0.5
-  ITER_NUMBER: (64, 86) # Min, Max
-  EPOCHES: 30000
-  STEPS: [15000, 24000]
+  ITER_NUMBER: (64, 86) # Min, Max recursion steps range
+  EPOCHES: 5000
+  STEPS: [15000, 24000] # Drop LR to 0.1
 
-  TARGET_EMOJI: "🦎" #@param {type:"string"}
 
-  EXPERIMENT_TYPE: "Persistent" #@param ["Growing", "Persistent", "Regenerating"]
+  # This parameters are hepling for USE_PATTERN_POOL and DAMAGE_N
+  EXPERIMENT_TYPE: "Persistent" # ["Growing", "Persistent", "Regenerating"]
   EXPERIMENT_MAP: {"Growing":0, "Persistent":1, "Regenerating":2}
-  EXPERIMENT_N: 1
+  EXPERIMENT_N: 1  #EXPERIMENT_MAP[EXPERIMENT_TYPE]
+  ######
 
-  USE_PATTERN_POOL: 1  #[0, 1, 1][EXPERIMENT_N]
+  USE_PATTERN_POOL: 1  #[0, 1, 1][EXPERIMENT_N] Use pool for intermediate predictions
   DAMAGE_N: 0 #[0, 0, 3][EXPERIMENT_N]  # Number of patterns to damage in a batch
 

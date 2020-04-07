@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 import torch.nn.functional as F
 
-from src.utils.ca_utils import get_living_mask
+from ..utils.ca_utils import get_living_mask
 
 
 class CAModel(nn.Module):

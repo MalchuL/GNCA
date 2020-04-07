@@ -1,7 +1,5 @@
-import torch
 import io
 import PIL.Image, PIL.ImageDraw
-import base64
 import matplotlib.pyplot as plt
 import numpy as np
 from skimage.transform import resize
@@ -38,11 +36,6 @@ def imencode(a, fmt='jpeg'):
     imwrite(f, a, fmt)
     return f.getvalue()
 
-
-def im2url(a, fmt='jpeg'):
-    encoded = imencode(a, fmt)
-    base64_byte_string = base64.b64encode(encoded).decode('ascii')
-    return 'data:image/' + fmt.upper() + ';base64,' + base64_byte_string
 
 
 

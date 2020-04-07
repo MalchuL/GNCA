@@ -1,7 +1,8 @@
 import numpy as np
 import os
-from src.utils import tile2d, to_rgb, imwrite
-from src.utils.img_utils import _to_NHWC
+
+from ..utils import tile2d, to_rgb, imwrite
+from ..utils.img_utils import _to_NHWC
 
 
 class SamplePool:
