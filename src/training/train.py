@@ -7,7 +7,6 @@ import torch.optim.lr_scheduler as sched
 import torch.optim as optim
 import torch.nn.functional as F
 
-
 from pathlib import Path
 
 from torch.utils.tensorboard import SummaryWriter
@@ -18,8 +17,7 @@ from ..utils import to_rgba, imwrite, to_rgb
 from ..utils.ca_utils import clip_grad_norm_
 
 
-
-def train(target_image, train_config, log_config, infer_config, use_cuda=False):
+def train(target_image, train_config, log_config, infer_config, use_cuda=False, resume=True):
     def move_(value):
         if use_cuda:
             return value.cuda()
@@ -40,7 +38,6 @@ def train(target_image, train_config, log_config, infer_config, use_cuda=False):
 
                 x = model(x)
 
-
     root_folder = Path(log_config.OUTPUT_FOLDER)
 
     train_output_folder = root_folder / 'train_log'
@@ -48,7 +45,6 @@ def train(target_image, train_config, log_config, infer_config, use_cuda=False):
 
     infer_output_folder = root_folder / 'infer_log'
     infer_output_folder.mkdir(parents=True, exist_ok=True)
-
 
     writer = SummaryWriter(root_folder / 'metrics')
 
@@ -144,7 +140,6 @@ def train(target_image, train_config, log_config, infer_config, use_cuda=False):
 
         if step_i % 100 == 0:
             visualize_batch(x0, x.cpu().detach().numpy(), step_i, train_output_folder)
-
 
             ckpt = torch.save(
                 dict(model=ca.state_dict(), optimizer=optimizer.state_dict(), scheduler=lr_sched.state_dict(), epoch=i),
