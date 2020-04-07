@@ -75,13 +75,15 @@ def train(target_image, train_config, log_config, infer_config, use_cuda=False, 
                                  train_config.STEPS, gamma=0.1)
 
     try:
+        if not resume:
+            raise Exception("You forced --nor-resume flag, breaking loading")
         ckpt = torch.load(str(root_folder / 'model_last.ckpt'))
         ca.load_state_dict(ckpt['model'])
         optimizer.load_state_dict(ckpt['optimizer'])
         lr_sched.load_state_dict(ckpt['scheduler'])
         epoch = ckpt['epoch']
     except Exception as e:
-        print('load error', e)
+        print('Load error:', e)
         epoch = 0
 
     try:
