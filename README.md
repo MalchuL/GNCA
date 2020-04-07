@@ -1,11 +1,13 @@
-#Growing Neural Cellar Automata
+# Growing Neural Cellar Automata
 
 This repository is reimplementation on PyTorch code from this [blog](https://distill.pub/2020/growing-ca/)
 
-I Running all experiments on **Ubuntu OS**.
 
 Example of infer:\
      ![Image of Sonic](examples/sonic.gif)
+
+## Installation
+All experiments was running **Ubuntu OS** NVDIA 2080 TI GPU.
 
 Requirements:
 
