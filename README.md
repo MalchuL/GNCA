@@ -1,4 +1,4 @@
-# Growing Neural Cellar Automata
+# Growing Neural Cellular Automata
 
 This repository is reimplementation on PyTorch code from this [blog](https://distill.pub/2020/growing-ca/)
 
