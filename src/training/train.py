@@ -63,7 +63,7 @@ def train(target_image, train_config, log_config, infer_config, use_cuda=False, 
         loss = F.mse_loss(x, target, reduction='none')
         return loss.mean(-1).mean(-1).mean(-1)
 
-    ca = move_(CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE, 128))
+    ca = move_(CAModel(train_config.CHANNEL_N, train_config.CELL_FIRE_RATE, train_config.HIDDEN_SIZE))
 
     loss_log = []
 
