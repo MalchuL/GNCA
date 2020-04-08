@@ -34,4 +34,4 @@ Requirements:
 ## Make GIF
 
 0. (Optional) Run for resize in <images_folder> folder `for X in *; do convert $X -interpolate Nearest -filter point -resize 480x480 $X; done`
-1. To make GIF run `convert -delay 20 -loop 0 <images_folder>/*.jpg myimage.gif` 
+1. To make GIF run `convert -delay 20 -loop 1 <images_folder>/*.jpg myimage.gif` 
