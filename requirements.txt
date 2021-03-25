@@ -4,6 +4,6 @@ matplotlib==3.2.1
 torch==1.4.0
 tqdm==4.43.0
 scikit-image==0.16.2
-PyYAML==5.3.1
+PyYAML==5.4
 tensorflow==1.14.0
 
